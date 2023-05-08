@@ -25,13 +25,13 @@ def variable(name, shape, initializer,regularizer=None):
 	global VARIABLE_COUNTER
 	with tf.device('/gpu:0'):
 		VARIABLE_COUNTER += np.prod(np.array(shape))
-		return tf.compat.v1.get_variable(name, shape, initializer=initializer, regularizer=regularizer, dtype=tf.float32, trainable=True)
+		return tf.get_variable(name, shape, initializer=initializer, regularizer=regularizer, dtype=tf.float32, trainable=True)
 
 
-def conv_layer(input_tensor,name,kernel_size,output_channels,initializer=tf.keras.initializers.VarianceScaling(),stride=1,bn=False,training=False,relu=True):
+def conv_layer(input_tensor,name,kernel_size,output_channels,initializer=tf.contrib.layers.variance_scaling_initializer(),stride=1,bn=False,training=False,relu=True):
 	input_channels = input_tensor.get_shape().as_list()[-1]
-	with tf.compat.v1.variable_scope(name) as scope:
-		kernel = variable('weights', [kernel_size, kernel_size, input_channels, output_channels], initializer, regularizer=tf.keras.regularizers.l2(0.0005))
+	with tf.variable_scope(name) as scope:
+		kernel = variable('weights', [kernel_size, kernel_size, input_channels, output_channels], initializer, regularizer=tf.contrib.layers.l2_regularizer(0.0005))
 		conv = tf.nn.conv2d(input_tensor, kernel, [1, stride, stride, 1], padding='SAME')
 		biases = variable('biases', [output_channels], tf.constant_initializer(0.0))
 		conv_layer = tf.nn.bias_add(conv, biases)
@@ -50,11 +50,10 @@ def max_pooling(input_tensor,name,factor=2):
 
 
 def batch_norm_layer(input_tensor,scope,training):
-#	return tf.contrib.layers.batch_norm(input_tensor,scope=scope,is_training=training,decay=0.99)
-     return tf.compat.v1.layers.batch_normalization(input_tensor)
+	return tf.contrib.layers.batch_norm(input_tensor,scope=scope,is_training=training,decay=0.99)
 
 
-def hourglass_refinement(netIN,training):
+def hourglass_normal_prediction(netIN,training):
 	print('-'*30)
 	print('Hourglass Architecture')
 	print('-'*30)
@@ -90,31 +89,31 @@ def hourglass_refinement(netIN,training):
 		c7 = conv_layer(c6,layer_name('conv'),KER_SZ,NUM_CH[4],bn=bn,training=training)
 		c8 = conv_layer(c7,layer_name('conv'),KER_SZ,NUM_CH[3],bn=bn,training=training)
 
-		r0 = tf.image.resize(c8,[c8.get_shape().as_list()[1]*2, c8.get_shape().as_list()[2]*2])
+		r0 = tf.image.resize_images(c8,[c8.get_shape().as_list()[1]*2, c8.get_shape().as_list()[2]*2])
 		cat0 = tf.concat([r0,c5],3)
 
 		c9 = conv_layer(cat0,layer_name('conv'),KER_SZ,NUM_CH[3],bn=bn,training=training)
 		c10 = conv_layer(c9,layer_name('conv'),KER_SZ,NUM_CH[2],bn=bn,training=training)
 
-		r1 = tf.image.resize(c10,[c10.get_shape().as_list()[1]*2, c10.get_shape().as_list()[2]*2])
+		r1 = tf.image.resize_images(c10,[c10.get_shape().as_list()[1]*2, c10.get_shape().as_list()[2]*2])
 		cat1 = tf.concat([r1,c4],3)
 
 		c11 = conv_layer(cat1,layer_name('conv'),KER_SZ,NUM_CH[2],bn=bn,training=training)
 		c12 = conv_layer(c11,layer_name('conv'),KER_SZ,NUM_CH[1],bn=bn,training=training)
 
-		r2 = tf.image.resize(c12,[c12.get_shape().as_list()[1]*2, c12.get_shape().as_list()[2]*2])
+		r2 = tf.image.resize_images(c12,[c12.get_shape().as_list()[1]*2, c12.get_shape().as_list()[2]*2])
 		cat2 = tf.concat([r2,c3],3)
 
 		c13 = conv_layer(cat2,layer_name('conv'),KER_SZ,NUM_CH[1],bn=bn,training=training)
 		c14 = conv_layer(c13,layer_name('conv'),KER_SZ,NUM_CH[0],bn=bn,training=training)
 
-		r3 = tf.image.resize(c14,[c14.get_shape().as_list()[1]*2, c14.get_shape().as_list()[2]*2])
+		r3 = tf.image.resize_images(c14,[c14.get_shape().as_list()[1]*2, c14.get_shape().as_list()[2]*2])
 		cat3 = tf.concat([r3,c2],3)
 
 		c15 = conv_layer(cat3,layer_name('conv'),KER_SZ,NUM_CH[0],bn=bn,training=training)
 		c16 = conv_layer(c15,layer_name('conv'),KER_SZ,NUM_CH[0],bn=bn,training=training)
-		stack_out_d = conv_layer(c16, layer_name('conv'), 1, 1, bn=False, training=training, relu=False)
+		stack_out_d = conv_layer(c16, layer_name('conv'), 1, 3, bn=False, training=training, relu=False)
 		return stack_out_d
 
-	out0_d = hourglass_stack_no_incep(netIN)
-	return out0_d
+	out0_n = hourglass_stack_no_incep(netIN)
+	return out0_n

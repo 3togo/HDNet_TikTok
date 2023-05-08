@@ -12,7 +12,7 @@ from PIL import Image, ImageDraw, ImageFont
 import random
 import sys
 import matplotlib.pyplot as plt
-tf.logging.set_verbosity(tf.logging.ERROR)
+#tf.logging.set_verbosity(tf.logging.ERROR)
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 import math
@@ -47,23 +47,23 @@ NormNet_graph = tf.Graph()
 # Define the depth and normal networks
 # ***********************************Normal Prediction******************************************
 with NormNet_graph.as_default():
-    x1_n = tf.placeholder(tf.float32, shape=(None, 256,256,3))
-    with tf.variable_scope('hourglass_normal_prediction', reuse=tf.AUTO_REUSE):
+    x1_n = tf.compat.v1.placeholder(tf.float32, shape=(None, 256,256,3))
+    with tf.compat.v1.variable_scope('hourglass_normal_prediction', reuse=tf.compat.v1.AUTO_REUSE):
         out2_normal = hourglass_normal_prediction(x1_n,True)
 # ***********************************Depth Prediction******************************************
 with refineNet_graph.as_default():
-    x1 = tf.placeholder(tf.float32, shape=(None, 256,256,9))
-    with tf.variable_scope('hourglass_stack_fused_depth_prediction', reuse=tf.AUTO_REUSE):
+    x1 = tf.compat.v1.placeholder(tf.float32, shape=(None, 256,256,9))
+    with tf.compat.v1.variable_scope('hourglass_stack_fused_depth_prediction', reuse=tf.compat.v1.AUTO_REUSE):
         out2_1 = hourglass_refinement(x1,True)
 
 # load checkpoints
-sess2 = tf.Session(graph=NormNet_graph)
-sess = tf.Session(graph=refineNet_graph)
+sess2 = tf.compat.v1.Session(graph=NormNet_graph)
+sess = tf.compat.v1.Session(graph=refineNet_graph)
 with sess.as_default():
     with refineNet_graph.as_default():
-        tf.global_variables_initializer().run()
-        saver = tf.train.Saver()
-        saver = tf.train.import_meta_graph(pre_ck_pnts_dir_DR+'/model_'+model_num_DR+'/model_'+model_num_DR+'.ckpt.meta')
+        tf.compat.v1.global_variables_initializer().run()
+        saver = tf.compat.v1.train.Saver()
+        saver = tf.compat.v1.train.import_meta_graph(pre_ck_pnts_dir_DR+'/model_'+model_num_DR+'/model_'+model_num_DR+'.ckpt.meta')
         saver.restore(sess,pre_ck_pnts_dir_DR+'/model_'+model_num_DR+'/model_'+model_num_DR+'.ckpt')
         print("Model DR restored.")
 with sess2.as_default():
